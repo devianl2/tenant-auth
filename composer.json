@@ -26,6 +26,13 @@
             "Tenant\\Auth\\": "/src"
         }
     },
+    "extra": {
+        "laravel": {
+            "providers": [
+                "Tenant\\Auth\\TenantAuthProvider"
+            ]
+        }
+    },
     "minimum-stability": "dev",
     "prefer-stable": true
 }
