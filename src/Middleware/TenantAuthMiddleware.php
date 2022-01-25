@@ -18,7 +18,7 @@ class TenantAuthMiddleware
             !empty($request->header('Authorization')) &&
             !empty($request->header('x-user-uuid')) &&
             !empty($request->header('x-tenant-uuid')) &&
-            !empty($request-header('x-tenant-url'))
+            !empty($request->header('x-tenant-url'))
         )
         {
             try {
