@@ -1,0 +1,31 @@
+{
+    "name": "devianl2/tenant-auth",
+    "description": "Microservice auth package",
+    "type": "library",
+    "license": "MIT",
+    "authors": [
+        {
+            "name": "Devian Leong",
+            "email": "devian@peoplelogy.com"
+        }
+    ],
+    "require": {
+        "firebase/php-jwt": "^v6.0",
+        "laravel/framework": "^8.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^9.5.10"
+    },
+    "autoload": {
+        "psr-4": {
+            "Tenant\\Auth\\": "/src"
+        }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Tenant\\Auth\\": "/src"
+        }
+    },
+    "minimum-stability": "dev",
+    "prefer-stable": true
+}
