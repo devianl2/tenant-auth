@@ -84,19 +84,20 @@ class TenantAuthMiddleware
         }
 
         /* check if we want to check both claim and value */
-        if ($jwt->claims()->has('userId') &&
-            $jwt->claims()->has('tenantId') &&
+        if ($jwt->claims()->has('userUid') &&
+            $jwt->claims()->has('tenantUId') &&
             $jwt->claims()->has('tenantUrl') &&
-            $jwt->claims()->has('scopes') &&
-            $jwt->claims()->has('roles')
+            $jwt->claims()->has('userScopes') &&
+            $jwt->claims()->has('userRoles') &&
+            $jwt->claims()->has('modules')
         ) {
 
             // Set header to the request
-            $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userId'));
-            $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantId'));
+            $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userUId'));
+            $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantUId'));
             $this->request->headers->set('x-tenant-url', $jwt->claims()->get('tenantUrl'));
-            $this->request->headers->set('x-scopes', $jwt->claims()->has('scopes'));
-            $this->request->headers->set('x-roles', $jwt->claims()->has('roles'));
+            $this->request->headers->set('x-scopes', $jwt->claims()->has('userScopes'));
+            $this->request->headers->set('x-roles', $jwt->claims()->has('userRoles'));
             $this->request->headers->set('x-modules', $jwt->claims()->has('modules'));
 
             $this->checkSelectedTenantId($jwt->claims()->get('tenantId'), $token);
