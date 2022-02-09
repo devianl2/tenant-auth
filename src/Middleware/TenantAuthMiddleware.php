@@ -8,6 +8,7 @@ use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cookie;
 use Lcobucci\JWT\Configuration;
+use Illuminate\Support\Facades\Http;
 
 class TenantAuthMiddleware
 {
@@ -83,13 +84,14 @@ class TenantAuthMiddleware
             $jwt->claims()->has('roles')
         ) {
 
-
             $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userId'));
             $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantId'));
             $this->request->headers->set('x-tenant-url', $jwt->claims()->get('tenantUrl'));
             $this->request->headers->set('x-scopes', $jwt->claims()->has('scopes'));
             $this->request->headers->set('x-roles', $jwt->claims()->has('roles'));
             $this->request->headers->set('x-modules', $jwt->claims()->has('modules'));
+
+            $this->checkSelectedTenantId($jwt->claims()->get('tenantId'), $token);
 
             return $this->request;
 
@@ -114,5 +116,42 @@ class TenantAuthMiddleware
         $decodedToken   =   JWT::decode($bearerToken, new Key($publicKey, 'RS256'));
 
         return $decodedToken;
+    }
+
+    /**
+     * @param string $tenantId
+     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|void
+     * @throws AuthorizationException
+     */
+    private function checkSelectedTenantId($tenantId, $token)
+    {
+        if(!$this->request->has('tenantId'))
+        {
+            if ($this->request->wantsJson())
+            {
+                throw new AuthorizationException('Invalid tenant id');
+            }
+            else
+            {
+                return redirect($this->request->fullUrlWithQuery(['tenantId' => $tenantId]));
+            }
+        }
+        else
+        {
+            $headers = [
+                'Authorization' => $token
+            ];
+
+            $response = Http::retry(3, 100)
+                ->withHeaders($headers)
+                ->post(config('tenant-auth.validate_tenant_gateway'), [
+                    'tenantId' => $this->request->input('tenantId'),
+            ]);
+
+            if (!$response->successful())
+            {
+                throw new AuthorizationException('Invalid tenant id');
+            }
+        }
     }
 }
