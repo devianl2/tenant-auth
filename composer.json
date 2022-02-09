@@ -11,7 +11,7 @@
     ],
     "require": {
         "laravel/framework": "^8.0",
-        "corbosman/laravel-passport-claims": "3"
+        "corbosman/laravel-passport-claims": "^3"
     },
     "require-dev": {
         "phpunit/phpunit": "^9.5.10"

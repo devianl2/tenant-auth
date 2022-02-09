@@ -2,6 +2,7 @@
 
 namespace Tenant\Auth\Middleware;
 
+use Carbon\Carbon;
 use Firebase\JWT\JWT;
 use Firebase\JWT\Key;
 use Closure;
@@ -76,6 +77,12 @@ class TenantAuthMiddleware
             throw new AuthorizationException();
         }
 
+        // Check if jwt token is expired
+        if ($jwt->isExpired(Carbon::now()))
+        {
+            throw new AuthorizationException();
+        }
+
         /* check if we want to check both claim and value */
         if ($jwt->claims()->has('userId') &&
             $jwt->claims()->has('tenantId') &&
@@ -84,6 +91,7 @@ class TenantAuthMiddleware
             $jwt->claims()->has('roles')
         ) {
 
+            // Set header to the request
             $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userId'));
             $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantId'));
             $this->request->headers->set('x-tenant-url', $jwt->claims()->get('tenantUrl'));
@@ -94,7 +102,6 @@ class TenantAuthMiddleware
             $this->checkSelectedTenantId($jwt->claims()->get('tenantId'), $token);
 
             return $this->request;
-
         }
         else
         {
@@ -113,6 +120,7 @@ class TenantAuthMiddleware
         // Remove Bearer prefix
         $bearerToken    =   str_replace('Bearer ', '', $token);
 
+        // Auto throw error if invalid. Try catch is covered in parent function
         $decodedToken   =   JWT::decode($bearerToken, new Key($publicKey, 'RS256'));
 
         return $decodedToken;
