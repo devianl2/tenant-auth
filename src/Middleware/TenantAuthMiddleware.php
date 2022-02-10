@@ -72,7 +72,8 @@ class TenantAuthMiddleware
     private function checkClaims($token)
     {
         try {
-            $jwt = (Configuration::forUnsecuredSigner()->parser()->parse($token));
+            $bearerToken    =   str_replace('Bearer ', '', $token);
+            $jwt = (Configuration::forUnsecuredSigner()->parser()->parse($bearerToken));
         } catch(\Exception $e) {
             throw new AuthorizationException();
         }
