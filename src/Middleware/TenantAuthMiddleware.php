@@ -3,8 +3,6 @@
 namespace Tenant\Auth\Middleware;
 
 use Carbon\Carbon;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Support\Facades\Cookie;
@@ -27,7 +25,6 @@ class TenantAuthMiddleware
         {
             try {
 
-                $this->validateBearerToken($this->request->header('Authorization'));
                 $this->checkClaims($this->request->header('Authorization'));
 
                 return $next($this->request);
@@ -45,7 +42,6 @@ class TenantAuthMiddleware
             {
                 try {
 
-                    $this->validateBearerToken(Cookie::get('Authorization'));
                     $this->checkClaims(Cookie::get('Authorization'));
 
                     return $next($this->request);
@@ -86,7 +82,7 @@ class TenantAuthMiddleware
 
         /* check if we want to check both claim and value */
         if ($jwt->claims()->has('userUid') &&
-            $jwt->claims()->has('tenantUId') &&
+            $jwt->claims()->has('tenantUid') &&
             $jwt->claims()->has('tenantUrl') &&
             $jwt->claims()->has('userScopes') &&
             $jwt->claims()->has('userRoles') &&
@@ -94,14 +90,14 @@ class TenantAuthMiddleware
         ) {
 
             // Set header to the request
-            $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userUId'));
-            $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantUId'));
+            $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userUid'));
+            $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantUid'));
             $this->request->headers->set('x-tenant-url', $jwt->claims()->get('tenantUrl'));
             $this->request->headers->set('x-scopes', $jwt->claims()->has('userScopes'));
             $this->request->headers->set('x-roles', $jwt->claims()->has('userRoles'));
             $this->request->headers->set('x-modules', $jwt->claims()->has('modules'));
 
-            $this->checkSelectedTenantId($jwt->claims()->get('tenantId'), $token);
+            $this->checkSelectedTenantId($jwt->claims()->get('tenantUid'), $bearerToken);
 
             return $this->request;
         }
@@ -109,23 +105,6 @@ class TenantAuthMiddleware
         {
             throw new AuthorizationException('Invalid claims');
         }
-    }
-
-    /**
-     * @param string $token
-     * @return object
-     */
-    private function validateBearerToken($token)
-    {
-        $publicKey  =   file_get_contents(config('tenant-auth.public_key_path'));
-
-        // Remove Bearer prefix
-        $bearerToken    =   str_replace('Bearer ', '', $token);
-
-        // Auto throw error if invalid. Try catch is covered in parent function
-        $decodedToken   =   JWT::decode($bearerToken, new Key($publicKey, 'RS256'));
-
-        return $decodedToken;
     }
 
     /**
@@ -148,12 +127,9 @@ class TenantAuthMiddleware
         }
         else
         {
-            $headers = [
-                'Authorization' => $token
-            ];
 
             $response = Http::retry(3, 100)
-                ->withHeaders($headers)
+                ->withToken($token)
                 ->post(config('tenant-auth.validate_tenant_gateway'), [
                     'tenantId' => $this->request->input('tenantId'),
             ]);
