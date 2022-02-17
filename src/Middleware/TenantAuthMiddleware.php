@@ -5,6 +5,7 @@ namespace Tenant\Auth\Middleware;
 use Carbon\Carbon;
 use Closure;
 use Illuminate\Auth\Access\AuthorizationException;
+use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cookie;
 use Lcobucci\JWT\Configuration;
 use Illuminate\Support\Facades\Http;
@@ -116,20 +117,12 @@ class TenantAuthMiddleware
     {
         if(!$this->request->has('tenantId'))
         {
-            if ($this->request->wantsJson())
-            {
-                throw new AuthorizationException('Invalid tenant id');
-            }
-            else
-            {
-                return redirect($this->request->fullUrlWithQuery(['tenantId' => $tenantId]));
-            }
+            throw new AuthorizationException('Invalid tenant id');
         }
         else
         {
 
-            $response = Http::retry(3, 100)
-                ->withToken($token)
+            $response = Http::withToken($token)
                 ->post(config('tenant-auth.validate_tenant_gateway'), [
                     'tenantId' => $this->request->input('tenantId'),
             ]);

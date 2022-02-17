@@ -13,7 +13,10 @@ class TenantAuthProvider extends ServiceProvider
     public function boot(Kernel $kernel)
     {
         $this->offerPublishing();
-        $kernel->pushMiddleware(TenantAuthMiddleware::class);
+        $this->app->singleton(
+            Illuminate\Contracts\Debug\ExceptionHandler::class,
+            App\Exceptions\Handler::class
+        );
     }
 
     protected function offerPublishing() {
