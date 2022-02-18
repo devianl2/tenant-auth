@@ -125,7 +125,7 @@ class TenantAuthMiddleware
 
             $response = Http::withToken($token)
                 ->post($claims->get('tenantUrl').config('tenant-auth.gateway_url.validate_tenant'), [
-                    'tenantId' => $claims->get('tenantUid'),
+                    'tenantId' => $this->request->input('tenantId'),
             ]);
 
             if (!$response->successful())
