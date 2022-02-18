@@ -9,6 +9,7 @@ use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cookie;
 use Lcobucci\JWT\Configuration;
 use Illuminate\Support\Facades\Http;
+use Lcobucci\JWT\Token\DataSet;
 
 class TenantAuthMiddleware
 {
@@ -98,7 +99,7 @@ class TenantAuthMiddleware
             $this->request->headers->set('x-roles', $jwt->claims()->has('userRoles'));
             $this->request->headers->set('x-modules', $jwt->claims()->has('modules'));
 
-            $this->checkSelectedTenantId($jwt->claims()->get('tenantUid'), $bearerToken);
+            $this->checkSelectedTenantId($jwt->claims(), $bearerToken);
 
             return $this->request;
         }
@@ -109,11 +110,11 @@ class TenantAuthMiddleware
     }
 
     /**
-     * @param string $tenantId
+     * @param DataSet
      * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|void
      * @throws AuthorizationException
      */
-    private function checkSelectedTenantId($tenantId, $token)
+    private function checkSelectedTenantId($claims, $token)
     {
         if(!$this->request->has('tenantId'))
         {
@@ -123,8 +124,8 @@ class TenantAuthMiddleware
         {
 
             $response = Http::withToken($token)
-                ->post(config('tenant-auth.validate_tenant_gateway'), [
-                    'tenantId' => $this->request->input('tenantId'),
+                ->post($claims->get('tenantUrl').config('tenant-auth.gateway_url.validate_tenant'), [
+                    'tenantId' => $claims->get('tenantUid'),
             ]);
 
             if (!$response->successful())
