@@ -4,12 +4,12 @@ namespace Tenant\Auth\Middleware;
 
 use Carbon\Carbon;
 use Closure;
+use Firebase\JWT\JWT;
+use Firebase\JWT\Key;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Client\ConnectionException;
 use Illuminate\Support\Facades\Cookie;
-use Lcobucci\JWT\Configuration;
 use Illuminate\Support\Facades\Http;
-use Lcobucci\JWT\Token\DataSet;
+use Tenant\Auth\Tenant;
 
 class TenantAuthMiddleware
 {
@@ -19,15 +19,31 @@ class TenantAuthMiddleware
     public function handle($request, Closure $next)
     {
 
+        $tenant =   new Tenant();
+        $token  =   $tenant->getAuthorizationToken(true);
         $this->request  =   $request; // init
 
-        if ($request->hasHeader('Authorization') &&
-            !empty($request->header('Authorization'))
-        )
+        if ($token)
         {
             try {
 
-                $this->checkClaims($this->request->header('Authorization'));
+                // Decoded to array
+                $tenant->tokenDecode($token);
+
+                // Check if token is expired
+                if ($tenant->isExpired(Carbon::now()->timestamp))
+                {
+                    throw new AuthorizationException();
+                }
+
+                // Set essentials data to request header
+                $this->setClaimsToRequest($tenant);
+
+                // Validate token from gateway
+                if (!$tenant->validateGatewayToken($tenant->getTenantUrl(), $token, $tenant->getTenantUid()))
+                {
+                    throw new AuthorizationException('Invalid tenant id');
+                }
 
                 return $next($this->request);
 
@@ -36,25 +52,6 @@ class TenantAuthMiddleware
             {
                 // Throw exception if cannot decode token, expired and other issue
                 throw new \Exception('Unauthorized', 401);
-            }
-        }
-        else
-        {
-            if (Cookie::has('Authorization'))
-            {
-                try {
-
-                    $this->checkClaims(Cookie::get('Authorization'));
-
-                    return $next($this->request);
-
-                }
-                catch (\Exception $exception)
-                {
-                    // Throw exception if cannot decode token, expired and other issue
-                    throw new \Exception('Unauthorized', 401);
-                }
-
             }
         }
 
@@ -67,71 +64,32 @@ class TenantAuthMiddleware
      * @return mixed
      * @throws AuthorizationException
      */
-    private function checkClaims($token)
+    private function setClaimsToRequest($tenant)
     {
-        try {
-            $bearerToken    =   str_replace('Bearer ', '', $token);
-            $jwt = (Configuration::forUnsecuredSigner()->parser()->parse($bearerToken));
-        } catch(\Exception $e) {
-            throw new AuthorizationException();
-        }
-
-        // Check if jwt token is expired
-        if ($jwt->isExpired(Carbon::now()))
-        {
-            throw new AuthorizationException();
-        }
 
         /* check if we want to check both claim and value */
-        if ($jwt->claims()->has('userUid') &&
-            $jwt->claims()->has('tenantUid') &&
-            $jwt->claims()->has('tenantUrl') &&
-            $jwt->claims()->has('userScopes') &&
-            $jwt->claims()->has('userRoles') &&
-            $jwt->claims()->has('modules')
+        if ($tenant->has('userUid') &&
+            $tenant->has('tenantUid') &&
+            $tenant->has('tenantUrl') &&
+            $tenant->has('userScopes') &&
+            $tenant->has('userRoles') &&
+            $tenant->has('modules')
         ) {
 
-            // Set header to the request
-            $this->request->headers->set('x-user-uuid', $jwt->claims()->get('userUid'));
-            $this->request->headers->set('x-tenant-uuid', $jwt->claims()->get('tenantUid'));
-            $this->request->headers->set('x-tenant-url', $jwt->claims()->get('tenantUrl'));
-            $this->request->headers->set('x-scopes', $jwt->claims()->has('userScopes'));
-            $this->request->headers->set('x-roles', $jwt->claims()->has('userRoles'));
-            $this->request->headers->set('x-modules', $jwt->claims()->has('modules'));
 
-            $this->checkSelectedTenantId($jwt->claims(), $bearerToken);
+            // Set header to the request
+            $this->request->headers->set('x-user-uuid', $tenant->get('userUid'));
+            $this->request->headers->set('x-tenant-uuid', $tenant->get('tenantUid'));
+            $this->request->headers->set('x-tenant-url', $tenant->get('tenantUrl'));
+            $this->request->headers->set('x-scopes', $tenant->get('userScopes'));
+            $this->request->headers->set('x-roles', $tenant->get('userRoles'));
+            $this->request->headers->set('x-modules', $tenant->get('modules'));
 
             return $this->request;
         }
         else
         {
             throw new AuthorizationException('Invalid claims');
-        }
-    }
-
-    /**
-     * @param DataSet
-     * @return \Illuminate\Contracts\Foundation\Application|\Illuminate\Http\RedirectResponse|\Illuminate\Routing\Redirector|void
-     * @throws AuthorizationException
-     */
-    private function checkSelectedTenantId($claims, $token)
-    {
-        if(!$this->request->has('tenantId'))
-        {
-            throw new AuthorizationException('Invalid tenant id');
-        }
-        else
-        {
-
-            $response = Http::withToken($token)
-                ->post($claims->get('tenantUrl').config('tenant-auth.gateway_url.validate_tenant'), [
-                    'tenantId' => $this->request->input('tenantId'),
-            ]);
-
-            if (!$response->successful())
-            {
-                throw new AuthorizationException('Invalid tenant id');
-            }
         }
     }
 }

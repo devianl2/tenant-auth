@@ -8,5 +8,6 @@ return [
         'user_list'   =>   '/api/users/list',
         'user_detail'   =>  '/api/users/detail/{uuid}',
         // Add more API below
-    ]
+    ],
+    'public_key_path'   =>  config('filesystems.disk.local.root').'/public.key'
 ];
