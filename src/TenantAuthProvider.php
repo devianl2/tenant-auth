@@ -3,9 +3,7 @@
 namespace Tenant\Auth;
 
 use Illuminate\Foundation\Http\Kernel;
-use Illuminate\Routing\Router;
 use Illuminate\Support\ServiceProvider;
-use Tenant\Auth\Middleware\TenantAuthMiddleware;
 
 class TenantAuthProvider extends ServiceProvider
 {

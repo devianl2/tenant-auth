@@ -4,11 +4,7 @@ namespace Tenant\Auth\Middleware;
 
 use Carbon\Carbon;
 use Closure;
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Support\Facades\Cookie;
-use Illuminate\Support\Facades\Http;
 use Tenant\Auth\Tenant;
 
 class TenantAuthMiddleware
