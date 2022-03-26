@@ -2,12 +2,17 @@
 
 namespace Tenant\Auth;
 
-use Firebase\JWT\JWT;
-use Firebase\JWT\Key;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Http;
+use Illuminate\Validation\UnauthorizedException;
+use Lcobucci\JWT\Encoding\JoseEncoder;
+use Lcobucci\JWT\Signer\Key\InMemory;
+use Lcobucci\JWT\Signer\Rsa\Sha256;
+use Lcobucci\JWT\Token\Parser;
+use Lcobucci\JWT\Validation\Constraint\SignedWith;
+use Lcobucci\JWT\Validation\Validator;
 use Tenant\Auth\Traits\TenantTrait;
 
 class Tenant
@@ -62,12 +67,23 @@ class Tenant
         try {
             $bearerToken    =   str_replace('Bearer ', '', $token);
 
-            $pubKey = file_get_contents(config('tenant-auth.public_key_path'));
+//            $pubKey = file_get_contents(config('tenant-auth.public_key_path'));
 
-            $decoded = JWT::decode($bearerToken, new Key($pubKey, 'RS256'));
+            // Auto prompt error
+            $token = (new Parser(new JoseEncoder()))->parse($token);
+//            $token = (new Parser(new JoseEncoder()))->parse($token)->claims()->all();
+
+            $validator  =   new Validator();
+
+            if (!$validator->validate($token, new SignedWith(new Sha256(), InMemory::file(config('tenant-auth.public_key_path')))))
+            {
+                throw new AuthorizationException('Invalid token');
+            }
+
+//            $decoded = JWT::decode($bearerToken, new Key($pubKey, 'RS256'));
 
             // Set data to setter
-            $this->setData(json_decode(json_encode($decoded), true));
+            $this->setData(json_decode(json_encode($token->claims()->all()), true));
 
             return $this->getData();
 

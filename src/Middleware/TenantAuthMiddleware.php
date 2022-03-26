@@ -71,8 +71,6 @@ class TenantAuthMiddleware
             $tenant->has('userRoles') &&
             $tenant->has('modules')
         ) {
-
-
             // Set header to the request
             $this->request->headers->set('x-user-uuid', $tenant->get('userUid'));
             $this->request->headers->set('x-tenant-uuid', $tenant->get('tenantUid'));
