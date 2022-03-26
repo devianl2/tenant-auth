@@ -27,7 +27,7 @@ class TenantAuthMiddleware
                 $tenant->tokenDecode($token);
 
                 // Check if token is expired
-                if ($tenant->isExpired(Carbon::now()->timestamp))
+                if ($tenant->isExpired())
                 {
                     throw new AuthorizationException();
                 }
