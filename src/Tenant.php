@@ -2,6 +2,7 @@
 
 namespace Tenant\Auth;
 
+use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
 use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
@@ -70,12 +71,14 @@ class Tenant
 //            $pubKey = file_get_contents(config('tenant-auth.public_key_path'));
 
             // Auto prompt error
-            $token = (new Parser(new JoseEncoder()))->parse($token);
+            $token = (new Parser(new JoseEncoder()))->parse($bearerToken);
 //            $token = (new Parser(new JoseEncoder()))->parse($token)->claims()->all();
 
             $validator  =   new Validator();
 
-            if (!$validator->validate($token, new SignedWith(new Sha256(), InMemory::file(config('tenant-auth.public_key_path')))))
+            if (!$validator->validate($token, new SignedWith(new Sha256(),
+                    InMemory::file(config('tenant-auth.public_key_path')))
+                ) || $token->isExpired(Carbon::now()))
             {
                 throw new AuthorizationException('Invalid token');
             }
@@ -83,29 +86,12 @@ class Tenant
 //            $decoded = JWT::decode($bearerToken, new Key($pubKey, 'RS256'));
 
             // Set data to setter
-            $this->setData(json_decode(json_encode($token->claims()->all()), true));
+            $this->setData($token->claims()->all());
 
             return $this->getData();
 
         } catch(\Exception $e) {
             throw new AuthorizationException();
-        }
-    }
-
-    /**
-     * Check if token is expired
-     * @param int $timestamp
-     * @return bool
-     */
-    public function isExpired($timestamp)
-    {
-        if (!empty($this->exp) && $this->exp > $timestamp)
-        {
-            return false;
-        }
-        else
-        {
-            return true;
         }
     }
 
