@@ -78,7 +78,7 @@ class Tenant
 
             if (!$validator->validate($token, new SignedWith(new Sha256(),
                     InMemory::file(config('tenant-auth.public_key_path')))
-                ) || $token->isExpired(Carbon::now()))
+                ) || $token->isExpired(new \DateTime()))
             {
                 throw new AuthorizationException('Invalid token');
             }
