@@ -76,9 +76,11 @@ class Tenant
 
             $validator  =   new Validator();
 
+
+
             if (!$validator->validate($token, new SignedWith(new Sha256(),
                     InMemory::file(config('tenant-auth.public_key_path')))
-                ) || $token->isExpired(new \DateTime()))
+                ))
             {
                 throw new AuthorizationException('Invalid token');
             }
@@ -88,11 +90,47 @@ class Tenant
             // Set data to setter
             $this->setData($token->claims()->all());
 
+            // Check token is expired
+            if ($this->isExpired())
+            {
+                throw new AuthorizationException('Token is expired');
+            }
+
             return $this->getData();
 
         } catch(\Exception $e) {
             throw new AuthorizationException();
         }
+    }
+
+    /**
+     * Check if is expired
+     * @param $tokenDate
+     * @param \DateTimeImmutable|null $date
+     * @return bool
+     */
+    public function isExpired(\DateTimeImmutable $date = null)
+    {
+        $isExpired  =   false;
+
+        $now = new \DateTime();
+
+        if (!$date)
+        {
+            if ($now > $this->exp)
+            {
+                $isExpired  =   true;
+            }
+        }
+        else
+        {
+            if ($date > $this->exp)
+            {
+                $isExpired  =   true;
+            }
+        }
+
+        return $isExpired;
     }
 
     /**
