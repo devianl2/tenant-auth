@@ -2,11 +2,12 @@
 
 namespace Tenant\Auth\Traits;
 
-use DateTime;
+
+use DateTimeImmutable;
 
 trait TenantTrait
 {
-    protected ?DateTime $exp  =   null;
+    protected DateTimeImmutable $exp;
     protected ?string $userUid  =   null;
     protected ?string$tenantUid  =   null;
     protected ?string $tenantUrl  =   null;
