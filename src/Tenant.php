@@ -4,7 +4,6 @@ namespace Tenant\Auth;
 
 use Carbon\Carbon;
 use Illuminate\Auth\Access\AuthorizationException;
-use Illuminate\Http\Request;
 use Illuminate\Support\Facades\Cookie;
 use Illuminate\Support\Facades\Http;
 use Illuminate\Validation\UnauthorizedException;
@@ -27,14 +26,13 @@ class Tenant
      */
     public function getAuthorizationToken($stripBearer = false)
     {
-        $request    =   new Request();
+
         $token  =   null;
 
-        if ($request->hasHeader('Authorization') &&
-            !empty($request->header('Authorization'))
+        if (!empty(request()->header('Authorization'))
         )
         {
-            $token  =   $request->header('Authorization');
+            $token  =   request()->header('Authorization');
 
             if ($stripBearer)
             {
